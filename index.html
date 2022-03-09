@@ -66,53 +66,56 @@
         var sceneToRender = null;
         var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
         var createScene = async function () {
-        
-            var scene = new BABYLON.Scene(engine);
-            var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene);
-            camera.setTarget(BABYLON.Vector3.Zero());
-            camera.attachControl(canvas, true);
-            var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-            light.intensity = 0.7;
-            var sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 2, scene);
-            sphere.position.y = 1;
-        
-            var sixDrag = new BABYLON.SixDofDragBehavior();
-            sixDrag.attach(sphere);
-        
-            const env = scene.createDefaultEnvironment();
-        
-            const xr = await scene.createDefaultXRExperienceAsync({
-                floorMeshes: [env.ground]
-            });
-            
-            const jointMesh = BABYLON.SphereBuilder.CreateSphere("jointParent", { diameter: 1, });
-            const material = new BABYLON.StandardMaterial("jointMaterial", scene);
-            material.alpha = 1;
-            material.diffuseColor = new BABYLON.Color3(1, 0, 0); // red
-            jointMesh.material = material;
-            jointMesh.isVisible = false;
-        
-            var generated = (meshInstance, jointId, controllerId)=>{
-                var gizmo = new BABYLON.PositionGizmo();
-                gizmo.attachedNode = meshInstance;
-                gizmo.updateGizmoRotationToMatchAttachedMesh = true;
-                gizmo.updateGizmoPositionToMatchAttachedMesh = true;
-                gizmo.scaleRatio = 0.25;
-        
-                meshInstance.isVisible = true;
-        
-                return meshInstance;
-            };
-        
-            try {
-                xr.baseExperience.featuresManager.enableFeature(BABYLON.WebXRFeatureName.HAND_TRACKING, "latest", {xrInput: xr.input, jointMeshes: {disableDefaultHandMesh: true, onHandJointMeshGenerated: generated }});
-            }
-            catch (err) {
-                alert("The hand tracking feature is not supported on this browser. Hand joints are not being tracked.");
-            }
-        
-            return scene;
-        };
+    // This creates a basic Babylon Scene object (non-mesh)
+    var scene = new BABYLON.Scene(engine);
+
+    // This creates and positions a free camera (non-mesh)
+    var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 2, -0.6), scene);
+
+    // This targets the camera to scene origin
+    camera.setTarget(BABYLON.Vector3.Zero());
+
+    // This attaches the camera to the canvas
+    camera.attachControl(canvas, true);
+
+    // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
+    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+    // Default intensity is 1. Let's dim the light a small amount
+    light.intensity = 0.7;
+
+    var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 0.05, segments: 32 }, scene);
+    sphere.position.y = 1.1;
+    var sphere1 = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 0.1, segments: 32 }, scene);
+    sphere1.position.y = 1.1;
+    sphere1.position.x = 0.4;
+    var sphere2 = BABYLON.MeshBuilder.CreateSphere("sphere", { diameter: 0.2, segments: 32 }, scene);
+    sphere2.position.y = 1.2;
+    sphere2.position.x = -0.4;
+
+    // Our built-in 'ground' shape.
+    var table = BABYLON.MeshBuilder.CreateGround("ground", { width: 6, height: 2 }, scene);
+    table.position.y = 1;
+
+    scene.enablePhysics(undefined, new BABYLON.AmmoJSPlugin());
+
+
+    sphere.physicsImpostor = new BABYLON.PhysicsImpostor(sphere, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 0.05 })
+    sphere1.physicsImpostor = new BABYLON.PhysicsImpostor(sphere1, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 0.05 })
+    sphere2.physicsImpostor = new BABYLON.PhysicsImpostor(sphere2, BABYLON.PhysicsImpostor.SphereImpostor, { mass: 0.05 })
+    table.physicsImpostor = new BABYLON.PhysicsImpostor(table, BABYLON.PhysicsImpostor.BoxImpostor, { mass: 0 })
+    
+    const xr = await scene.createDefaultXRExperienceAsync();
+    xr.baseExperience.featuresManager.enableFeature(BABYLON.WebXRFeatureName.HAND_TRACKING, "latest", {
+        xrInput: xr.input,
+        jointMeshes: {
+            enablePhysics: true
+        }
+    });
+
+
+    return scene;
+};
                 window.initFunction = async function() {
                     
                     
